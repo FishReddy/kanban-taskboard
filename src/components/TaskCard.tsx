@@ -1,8 +1,10 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Calendar, MessageSquare } from 'lucide-react'
-import { formatDueDate, PRIORITY_LABELS } from '../lib/board'
+import { AlertCircle, Calendar, Clock, MessageSquare } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { PRIORITY_LABELS } from '../lib/board'
 import { describeCommentCount, type CommentsByTask } from '../lib/comments'
+import { getDueInfo, type DueUrgency } from '../lib/due'
 import { resolveLabels } from '../lib/labels'
 import { resolveMembers } from '../lib/team'
 import type { Label, Task, TeamMember } from '../lib/types'
@@ -10,6 +12,14 @@ import { AvatarStack } from './Avatar'
 import { LabelPill } from './LabelPill'
 
 const MAX_CARD_LABELS = 3
+
+/** Urgency is carried by the icon and wording as well as the colour. */
+const DUE_ICONS: Record<DueUrgency, ReactNode> = {
+  overdue: <AlertCircle size={12} aria-hidden />,
+  today: <Clock size={12} aria-hidden />,
+  soon: <Clock size={12} aria-hidden />,
+  none: <Calendar size={12} aria-hidden />,
+}
 
 /** What a card looks up beyond the task itself. */
 export interface CardData {
@@ -28,6 +38,7 @@ export function TaskCard({ task, data, isOverlay = false }: TaskCardProps) {
   const assignees = resolveMembers(task.assignee_ids, data.membersById)
   const labels = resolveLabels(task.label_ids, data.labelsById)
   const commentCount = data.commentsByTask.get(task.id)?.length ?? 0
+  const due = getDueInfo(task)
   const hasMeta =
     task.priority !== 'normal' || task.due_date || assignees.length > 0 || commentCount > 0
 
@@ -59,10 +70,10 @@ export function TaskCard({ task, data, isOverlay = false }: TaskCardProps) {
               {PRIORITY_LABELS[task.priority]}
             </span>
           )}
-          {task.due_date && (
-            <span className="card__due">
-              <Calendar size={12} aria-hidden />
-              {formatDueDate(task.due_date)}
+          {due && (
+            <span className={`due due--${due.urgency}`} title={due.detail}>
+              {DUE_ICONS[due.urgency]}
+              {due.label}
             </span>
           )}
           {commentCount > 0 && (
@@ -98,6 +109,10 @@ export function SortableTaskCard({ task, data, onOpen }: SortableTaskCardProps) 
   const labelled = labelNames.length > 0 ? ` Labels: ${labelNames.join(', ')}.` : ''
   const commentCount = data.commentsByTask.get(task.id)?.length ?? 0
   const commented = commentCount > 0 ? ` ${describeCommentCount(commentCount)}.` : ''
+  const dueInfo = getDueInfo(task)
+  const dueText = dueInfo
+    ? ` ${dueInfo.urgency === 'none' ? dueInfo.detail : `${dueInfo.label}, ${dueInfo.detail}`}.`
+    : ''
 
   return (
     <div
@@ -106,7 +121,7 @@ export function SortableTaskCard({ task, data, onOpen }: SortableTaskCardProps) 
       style={{ transform: CSS.Translate.toString(transform), transition }}
       {...attributes}
       {...listeners}
-      aria-label={`${task.title}.${assignedTo}${labelled}${commented} Press Enter to open, Space to pick up and move.`}
+      aria-label={`${task.title}.${dueText}${assignedTo}${labelled}${commented} Press Enter to open, Space to pick up and move.`}
       onClick={() => onOpen(task.id)}
       onKeyDown={(event) => {
         if (event.key === 'Enter' && !isDragging) {

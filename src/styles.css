@@ -44,6 +44,9 @@
   --status-done: #2b9a66;
   --priority-high: #c5322f;
   --priority-low: #7c7c8a;
+  --due-overdue: #b3261e;
+  --due-today: #a34a08;
+  --due-soon: #805a00;
   --skeleton: #e1e1e7;
 }
 
@@ -74,6 +77,9 @@
   --status-done: #4cc38a;
   --priority-high: #f2736f;
   --priority-low: #8d8d9b;
+  --due-overdue: #f58a86;
+  --due-today: #f5a35c;
+  --due-soon: #e6c15a;
   --skeleton: #2a2a33;
 }
 
@@ -615,10 +621,33 @@ textarea {
   color: var(--text-muted);
 }
 
-.card__due {
+.due {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.due--overdue,
+.due--today,
+.due--soon {
+  padding: 1px 7px 1px 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--due-color) 14%, transparent);
+  color: var(--due-color);
+}
+
+.due--overdue {
+  --due-color: var(--due-overdue);
+  font-weight: 600;
+}
+
+.due--today {
+  --due-color: var(--due-today);
+  font-weight: 600;
+}
+
+.due--soon {
+  --due-color: var(--due-soon);
 }
 
 .card__comments {
