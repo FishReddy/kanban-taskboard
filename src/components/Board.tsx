@@ -21,6 +21,7 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { groupByStatus, positionBetween, type TasksByStatus } from '../lib/board'
+import type { CommentsByTask } from '../lib/comments'
 import { isTaskStatus, STATUSES, type Task, type TaskStatus } from '../lib/types'
 import { Column } from './Column'
 import { TaskCard, type MembersById } from './TaskCard'
@@ -42,12 +43,20 @@ function findColumn(id: string, columns: TasksByStatus): TaskStatus | undefined 
 interface BoardProps {
   tasks: Task[]
   membersById: MembersById
+  commentsByTask: CommentsByTask
   onMoveTask: (id: string, status: TaskStatus, position: number) => void
   onOpenTask: (id: string) => void
   onAddTask: (status: TaskStatus) => void
 }
 
-export function Board({ tasks, membersById, onMoveTask, onOpenTask, onAddTask }: BoardProps) {
+export function Board({
+  tasks,
+  membersById,
+  commentsByTask,
+  onMoveTask,
+  onOpenTask,
+  onAddTask,
+}: BoardProps) {
   const saved = useMemo(() => groupByStatus(tasks), [tasks])
 
   // While dragging, the layout follows this local copy. Nothing is saved until drop.
@@ -178,13 +187,16 @@ export function Board({ tasks, membersById, onMoveTask, onOpenTask, onAddTask }:
             status={status}
             tasks={columns[status]}
             membersById={membersById}
+            commentsByTask={commentsByTask}
             onOpenTask={onOpenTask}
             onAddTask={onAddTask}
           />
         ))}
       </main>
       <DragOverlay dropAnimation={dropAnimation}>
-        {activeTask && <TaskCard task={activeTask} membersById={membersById} isOverlay />}
+        {activeTask && (
+          <TaskCard task={activeTask} membersById={membersById} commentsByTask={commentsByTask} isOverlay />
+        )}
       </DragOverlay>
     </DndContext>
   )

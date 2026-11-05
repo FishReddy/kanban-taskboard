@@ -8,10 +8,12 @@ import { Header } from './components/Header'
 import { TaskDialog } from './components/TaskDialog'
 import { TeamDialog } from './components/TeamDialog'
 import { Toast } from './components/Toast'
+import { useComments } from './hooks/useComments'
 import { useGuestSession } from './hooks/useGuestSession'
 import { useTasks } from './hooks/useTasks'
 import { useTeamMembers } from './hooks/useTeamMembers'
 import { useWriteQueue } from './hooks/useWriteQueue'
+import { groupCommentsByTask } from './lib/comments'
 import type { TaskStatus } from './lib/types'
 
 export default function App() {
@@ -47,15 +49,19 @@ function Workspace({ userId }: { userId: string }) {
   const enqueueWrite = useWriteQueue(setToast)
   const taskStore = useTasks(userId, enqueueWrite)
   const teamStore = useTeamMembers(userId, enqueueWrite)
+  const commentStore = useComments(userId, enqueueWrite)
   const { tasks } = taskStore
   const { members } = teamStore
+  const { comments } = commentStore
 
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member])), [members])
+  const commentsByTask = useMemo(() => groupCommentsByTask(comments), [comments])
   const dismissToast = useCallback(() => setToast(null), [])
   const closeDialog = () => setDialog({ mode: 'closed' })
 
-  const failedLoad = [taskStore.loadState, teamStore.loadState].find((state) => state.status === 'error')
-  const isReady = taskStore.loadState.status === 'ready' && teamStore.loadState.status === 'ready'
+  const loadStates = [taskStore.loadState, teamStore.loadState, commentStore.loadState]
+  const failedLoad = loadStates.find((state) => state.status === 'error')
+  const isReady = loadStates.every((state) => state.status === 'ready')
 
   const editingTask =
     dialog.mode === 'edit' ? tasks.find((task) => task.id === dialog.taskId) : undefined
@@ -71,6 +77,7 @@ function Workspace({ userId }: { userId: string }) {
           onRetry={() => {
             taskStore.reload()
             teamStore.reload()
+            commentStore.reload()
           }}
         />
       ) : !isReady ? (
@@ -95,6 +102,7 @@ function Workspace({ userId }: { userId: string }) {
           <Board
             tasks={tasks}
             membersById={membersById}
+            commentsByTask={commentsByTask}
             onMoveTask={taskStore.moveTask}
             onOpenTask={(taskId) => setDialog({ mode: 'edit', taskId })}
             onAddTask={(status) => setDialog({ mode: 'create', status })}
@@ -118,6 +126,9 @@ function Workspace({ userId }: { userId: string }) {
           key={editingTask.id}
           task={editingTask}
           members={members}
+          comments={commentsByTask.get(editingTask.id)}
+          onAddComment={(body, onFailure) => commentStore.addComment(editingTask.id, body, onFailure)}
+          onDeleteComment={commentStore.deleteComment}
           onClose={closeDialog}
           onSave={(draft) => {
             taskStore.editTask(editingTask.id, draft)

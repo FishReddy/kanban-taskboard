@@ -146,5 +146,44 @@ create policy "Users can delete their own assignments"
   on public.task_assignees for delete to authenticated
   using ((select auth.uid()) = user_id);
 
+-- ---------------------------------------------------------------------------
+-- Task comments
+-- ---------------------------------------------------------------------------
+
+-- The composite foreign key means a comment can only be attached to a task
+-- owned by the same user. Comments are never edited, so there is no update
+-- policy or grant.
+create table if not exists public.comments (
+  id         uuid primary key default gen_random_uuid(),
+  task_id    uuid not null,
+  body       text not null check (char_length(btrim(body)) between 1 and 2000),
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  foreign key (task_id, user_id) references public.tasks (id, user_id) on delete cascade
+);
+
+create index if not exists comments_task_created_idx on public.comments (task_id, created_at);
+create index if not exists comments_user_created_idx on public.comments (user_id, created_at);
+
+alter table public.comments enable row level security;
+
+revoke all on table public.comments from anon;
+grant select, insert, delete on table public.comments to authenticated;
+
+drop policy if exists "Users can read their own comments" on public.comments;
+create policy "Users can read their own comments"
+  on public.comments for select to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can create their own comments" on public.comments;
+create policy "Users can create their own comments"
+  on public.comments for insert to authenticated
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can delete their own comments" on public.comments;
+create policy "Users can delete their own comments"
+  on public.comments for delete to authenticated
+  using ((select auth.uid()) = user_id);
+
 -- Makes the API pick up the new tables straight away.
 notify pgrst, 'reload schema';

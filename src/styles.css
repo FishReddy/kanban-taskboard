@@ -518,6 +518,13 @@ textarea {
   gap: 4px;
 }
 
+.card__comments {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
 .card__assignees {
   display: inline-flex;
   margin-left: auto;
@@ -993,6 +1000,165 @@ textarea {
   outline-offset: 4px;
 }
 
+/* ---------- Task details and comments ---------- */
+
+.dialog--detail {
+  width: min(900px, calc(100vw - 24px));
+  height: min(680px, calc(100dvh - 24px));
+  overflow: hidden;
+}
+
+/* Only when open, because a display value would otherwise reveal a closed dialog. */
+.dialog--detail[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog--detail .dialog__header {
+  flex: none;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dialog--detail .dialog__panes {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.dialog--detail .dialog__form {
+  min-height: 0;
+}
+
+.dialog--detail .dialog__body {
+  flex: 1;
+  min-height: 0;
+  padding-top: 16px;
+  overflow-y: auto;
+}
+
+.comments {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.comments__header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 16px 8px;
+}
+
+.comments__header h3 {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.comments__count {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-subtle);
+}
+
+.comments__empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  font-size: var(--text-sm);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.comment-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 16px 12px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.comment {
+  flex: none;
+  padding: 8px 10px 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.comment__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  margin-bottom: 2px;
+  font-size: var(--text-xs);
+}
+
+.comment__author {
+  font-weight: 600;
+}
+
+.comment__time {
+  color: var(--text-subtle);
+}
+
+.comment__delete,
+.comment__delete-confirm {
+  margin-left: auto;
+}
+
+/* Touch screens have no hover, so the button stays visible there. */
+@media (hover: hover) {
+  .comment__delete {
+    opacity: 0;
+    transition: opacity 120ms var(--ease);
+  }
+
+  .comment:hover .comment__delete,
+  .comment__delete:focus-visible {
+    opacity: 1;
+  }
+}
+
+.comment__body {
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.comment-form {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.comment-form .field textarea {
+  background: var(--surface);
+}
+
+.comment-form__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* ---------- Toast ---------- */
 
 .toast {
@@ -1051,6 +1217,30 @@ textarea {
 
   .guest-badge {
     display: none;
+  }
+
+  /* One scrolling column, with comments below the task form. */
+  .dialog--detail {
+    height: auto;
+    overflow-y: auto;
+  }
+
+  .dialog--detail[open] {
+    display: block;
+  }
+
+  .dialog--detail .dialog__panes {
+    display: block;
+  }
+
+  .dialog--detail .dialog__body,
+  .comment-list {
+    overflow-y: visible;
+  }
+
+  .comments {
+    border-top: 1px solid var(--border);
+    border-left: 0;
   }
 
   /* 16px stops iOS Safari zooming the page when a field gets focus. */

@@ -37,6 +37,14 @@ export interface TeamMember {
 /** The fields a person edits directly in the team form. */
 export type TeamMemberDraft = Pick<TeamMember, 'name' | 'color'>
 
+export interface TaskComment {
+  id: string
+  task_id: string
+  body: string
+  user_id: string
+  created_at: string
+}
+
 export function isTaskStatus(value: unknown): value is TaskStatus {
   return STATUSES.includes(value as TaskStatus)
 }
