@@ -1,5 +1,6 @@
 import { Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useModalDialog } from '../hooks/useModalDialog'
 import { COLUMNS, PRIORITY_LABELS } from '../lib/board'
 import {
   PRIORITIES,
@@ -8,7 +9,9 @@ import {
   type TaskDraft,
   type TaskPriority,
   type TaskStatus,
+  type TeamMember,
 } from '../lib/types'
+import { Avatar } from './Avatar'
 
 const TITLE_MAX = 200
 
@@ -16,28 +19,34 @@ interface TaskDialogProps {
   /** Present when editing; absent when creating. */
   task?: Task
   initialStatus?: TaskStatus
+  members: TeamMember[]
   onSave: (draft: TaskDraft) => void
   onDelete?: () => void
   onClose: () => void
 }
 
-export function TaskDialog({ task, initialStatus = 'todo', onSave, onDelete, onClose }: TaskDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null)
+export function TaskDialog({
+  task,
+  initialStatus = 'todo',
+  members,
+  onSave,
+  onDelete,
+  onClose,
+}: TaskDialogProps) {
+  const dialogRef = useModalDialog()
   const titleRef = useRef<HTMLInputElement>(null)
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? initialStatus)
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'normal')
   const [dueDate, setDueDate] = useState(task?.due_date ?? '')
+  const [assigneeIds, setAssigneeIds] = useState<string[]>(task?.assignee_ids ?? [])
   const [titleError, setTitleError] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
-  // Native showModal provides the focus trap, Escape handling and top layer.
+  // showModal focuses the first focusable element (the close button), and it
+  // ignores React's autoFocus, so the title has to be focused explicitly.
   useEffect(() => {
-    const dialog = dialogRef.current
-    if (dialog && !dialog.open) dialog.showModal()
-    // showModal focuses the first focusable element (the close button), and it
-    // ignores React's autoFocus, so the title has to be focused explicitly.
     titleRef.current?.focus()
   }, [])
 
@@ -46,7 +55,14 @@ export function TaskDialog({ task, initialStatus = 'todo', onSave, onDelete, onC
     description !== (task?.description ?? '') ||
     status !== (task?.status ?? initialStatus) ||
     priority !== (task?.priority ?? 'normal') ||
-    dueDate !== (task?.due_date ?? '')
+    dueDate !== (task?.due_date ?? '') ||
+    assigneeIds.join() !== (task?.assignee_ids ?? []).join()
+
+  function toggleAssignee(memberId: string) {
+    setAssigneeIds((current) =>
+      current.includes(memberId) ? current.filter((id) => id !== memberId) : [...current, memberId],
+    )
+  }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -61,6 +77,7 @@ export function TaskDialog({ task, initialStatus = 'todo', onSave, onDelete, onC
       status,
       priority,
       due_date: dueDate || null,
+      assignee_ids: assigneeIds,
     })
   }
 
@@ -164,6 +181,33 @@ export function TaskDialog({ task, initialStatus = 'todo', onSave, onDelete, onC
                 </label>
               ))}
             </div>
+          </fieldset>
+
+          <fieldset className="field">
+            <legend>
+              Assignees <span className="field__optional">Optional</span>
+            </legend>
+            {members.length === 0 ? (
+              <p className="field__hint">
+                No team yet. Add people with the Team button above the board.
+              </p>
+            ) : (
+              <div className="assignee-picker">
+                {members.map((member) => (
+                  <label key={member.id} className="assignee-option">
+                    <input
+                      type="checkbox"
+                      checked={assigneeIds.includes(member.id)}
+                      onChange={() => toggleAssignee(member.id)}
+                    />
+                    <span className="assignee-option__chip">
+                      <Avatar member={member} size="small" />
+                      {member.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
           </fieldset>
         </div>
 

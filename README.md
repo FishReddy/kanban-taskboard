@@ -7,6 +7,7 @@ A Kanban board for planning and moving work, built with React, TypeScript and Su
 - Four columns: To Do, In Progress, In Review and Done
 - Drag and drop between and within columns, by mouse, touch or keyboard
 - Create, edit and delete tasks, with description, priority and due date
+- A team of named, colour-coded members, with one or more assignees per task
 - Instant updates that are undone with a message if a save fails
 - Loading, empty and error states, light and dark themes, and a responsive layout
 
@@ -43,13 +44,13 @@ Import the repository into Vercel, which detects Vite automatically, and add `VI
 ## How it's structured
 
 ```
-supabase/schema.sql    Table, constraints, trigger and RLS policies
-src/lib/               Types, Supabase client, and pure board logic (tested)
-src/hooks/             useGuestSession (auth) and useTasks (data and optimistic writes)
-src/components/        Board (drag and drop), Column, TaskCard, TaskDialog, UI states
+supabase/schema.sql    Tables, constraints, trigger and RLS policies
+src/lib/               Types, Supabase client, and pure board and team logic (tested)
+src/hooks/             Auth, data loading, optimistic writes and the ordered write queue
+src/components/        Board (drag and drop), Column, TaskCard, dialogs, avatars, UI states
 src/styles.css         Design tokens and component styles
 ```
 
 ## Security
 
-The app talks to Supabase directly from the browser using only the public key, so the database enforces access. RLS policies restrict all reads and writes to rows where `user_id` matches the signed-in guest, and signed-out requests are denied.
+The app talks to Supabase directly from the browser using only the public key, so the database enforces access. RLS policies restrict all reads and writes to rows where `user_id` matches the signed-in guest, and signed-out requests are denied. Assignments also use composite foreign keys that include `user_id`, so the database rejects any link between a task and a member owned by different guests.

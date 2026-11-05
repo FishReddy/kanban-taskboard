@@ -4,16 +4,17 @@ import { Plus } from 'lucide-react'
 import { useMemo } from 'react'
 import { COLUMNS } from '../lib/board'
 import type { Task, TaskStatus } from '../lib/types'
-import { SortableTaskCard } from './TaskCard'
+import { SortableTaskCard, type MembersById } from './TaskCard'
 
 interface ColumnProps {
   status: TaskStatus
   tasks: Task[]
+  membersById: MembersById
   onOpenTask: (id: string) => void
   onAddTask: (status: TaskStatus) => void
 }
 
-export function Column({ status, tasks, onOpenTask, onAddTask }: ColumnProps) {
+export function Column({ status, tasks, membersById, onOpenTask, onAddTask }: ColumnProps) {
   const { title, emptyHint } = COLUMNS[status]
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks])
@@ -37,7 +38,7 @@ export function Column({ status, tasks, onOpenTask, onAddTask }: ColumnProps) {
       <div ref={setNodeRef} className={`column__body${isOver ? ' column__body--over' : ''}`}>
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <SortableTaskCard key={task.id} task={task} onOpen={onOpenTask} />
+            <SortableTaskCard key={task.id} task={task} membersById={membersById} onOpen={onOpenTask} />
           ))}
         </SortableContext>
 

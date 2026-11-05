@@ -1,31 +1,39 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { topPosition } from '../lib/board'
 import { supabase } from '../lib/supabase'
 import type { Task, TaskDraft, TaskStatus } from '../lib/types'
+import type { EnqueueWrite } from './useWriteQueue'
 
-const TASK_COLUMNS = 'id, title, description, status, priority, due_date, position, user_id, created_at, updated_at'
+const TASK_QUERY =
+  'id, title, description, status, priority, due_date, position, user_id, created_at, updated_at, task_assignees(member_id)'
 
-type LoadState = { status: 'loading' } | { status: 'ready' } | { status: 'error'; message: string }
+type TaskRow = Omit<Task, 'assignee_ids'> & { task_assignees: { member_id: string }[] }
+
+/** The columns of the tasks table itself, which excludes assignees. */
+type TaskPatch = Partial<Omit<TaskDraft, 'assignee_ids'> & Pick<Task, 'position'>>
+
+export type LoadState = { status: 'loading' } | { status: 'ready' } | { status: 'error'; message: string }
+
+function toTask({ task_assignees, ...row }: TaskRow): Task {
+  return { ...row, assignee_ids: task_assignees.map((assignee) => assignee.member_id) }
+}
 
 /**
  * Loads the signed-in user's tasks and keeps the board optimistic: every change
- * shows immediately, is written in order, and is undone with a message if the
- * write fails. Access control is RLS's job, so queries don't filter by user.
+ * shows immediately and is undone with a message if the write fails. Access
+ * control is RLS's job, so queries don't filter by user.
  */
-export function useTasks(userId: string, onError: (message: string) => void) {
+export function useTasks(userId: string, enqueueWrite: EnqueueWrite) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
-
-  // Writes run one at a time so quick successive moves can't land out of order.
-  const writeQueue = useRef<Promise<void>>(Promise.resolve())
 
   useEffect(() => {
     let cancelled = false
     setLoadState({ status: 'loading' })
     supabase
       .from('tasks')
-      .select(TASK_COLUMNS)
+      .select(TASK_QUERY)
       .then(({ data, error }) => {
         if (cancelled) return
         if (error) {
@@ -35,7 +43,7 @@ export function useTasks(userId: string, onError: (message: string) => void) {
             message: 'Something went wrong while fetching your tasks. Check your connection and try again.',
           })
         } else {
-          setTasks(data as Task[])
+          setTasks((data as unknown as TaskRow[]).map(toTask))
           setLoadState({ status: 'ready' })
         }
       })
@@ -45,25 +53,6 @@ export function useTasks(userId: string, onError: (message: string) => void) {
   }, [userId, attempt])
 
   const reload = useCallback(() => setAttempt((count) => count + 1), [])
-
-  function enqueueWrite(
-    write: () => PromiseLike<{ error: { message: string } | null }>,
-    rollback: () => void,
-    failureMessage: string,
-  ) {
-    writeQueue.current = writeQueue.current.then(async () => {
-      let failed: boolean
-      try {
-        failed = (await write()).error !== null
-      } catch {
-        failed = true
-      }
-      if (failed) {
-        rollback()
-        onError(failureMessage)
-      }
-    })
-  }
 
   function createTask(draft: TaskDraft) {
     const now = new Date().toISOString()
@@ -77,6 +66,7 @@ export function useTasks(userId: string, onError: (message: string) => void) {
       created_at: now,
       updated_at: now,
     }
+    let inserted = true
     setTasks((current) => [...current, task])
     enqueueWrite(
       () =>
@@ -90,12 +80,28 @@ export function useTasks(userId: string, onError: (message: string) => void) {
           due_date: task.due_date,
           position: task.position,
         }),
-      () => setTasks((current) => current.filter((t) => t.id !== task.id)),
+      () => {
+        inserted = false
+        setTasks((current) => current.filter((t) => t.id !== task.id))
+      },
       `Couldn't save "${task.title}". Please try again.`,
     )
+    if (draft.assignee_ids.length > 0) {
+      enqueueWrite(
+        async () => (inserted ? insertAssignees(task.id, draft.assignee_ids) : { error: null }),
+        () => setTasks((current) => current.map((t) => (t.id === task.id ? { ...t, assignee_ids: [] } : t))),
+        `"${task.title}" was saved, but its assignees weren't.`,
+      )
+    }
   }
 
-  function updateTask(id: string, patch: Partial<TaskDraft & Pick<Task, 'position'>>) {
+  function insertAssignees(taskId: string, memberIds: string[]) {
+    return supabase
+      .from('task_assignees')
+      .insert(memberIds.map((member_id) => ({ task_id: taskId, member_id, user_id: userId })))
+  }
+
+  function updateTask(id: string, patch: TaskPatch) {
     const previous = tasks.find((t) => t.id === id)
     if (!previous) return
     setTasks((current) => current.map((t) => (t.id === id ? { ...t, ...patch } : t)))
@@ -103,17 +109,53 @@ export function useTasks(userId: string, onError: (message: string) => void) {
       // Selecting the row back turns an update that matched nothing (for
       // example, one RLS filtered out) into an error instead of a silent no-op.
       () => supabase.from('tasks').update(patch).eq('id', id).select('id').single(),
-      () => setTasks((current) => current.map((t) => (t.id === id ? previous : t))),
+      () =>
+        setTasks((current) =>
+          current.map((t) => (t.id === id ? { ...previous, assignee_ids: t.assignee_ids } : t)),
+        ),
       `Couldn't update "${previous.title}". Your change was undone.`,
     )
   }
 
+  function updateAssignees(task: Task, nextIds: string[]) {
+    const added = nextIds.filter((id) => !task.assignee_ids.includes(id))
+    const removed = task.assignee_ids.filter((id) => !nextIds.includes(id))
+    if (added.length === 0 && removed.length === 0) return
+
+    const setIds = (ids: string[]) =>
+      setTasks((current) => current.map((t) => (t.id === task.id ? { ...t, assignee_ids: ids } : t)))
+
+    setIds(nextIds)
+    enqueueWrite(
+      async () => {
+        if (removed.length > 0) {
+          const result = await supabase
+            .from('task_assignees')
+            .delete()
+            .eq('task_id', task.id)
+            .in('member_id', removed)
+          if (result.error) return result
+        }
+        return added.length > 0 ? insertAssignees(task.id, added) : { error: null }
+      },
+      () => setIds(task.assignee_ids),
+      `Couldn't update the assignees on "${task.title}". Your change was undone.`,
+    )
+  }
+
   /** Applies form edits. A status change puts the task at the top of its new column. */
-  function editTask(id: string, draft: TaskDraft) {
+  function editTask(id: string, { assignee_ids, ...fields }: TaskDraft) {
     const previous = tasks.find((t) => t.id === id)
     if (!previous) return
-    const movedColumn = previous.status !== draft.status
-    updateTask(id, movedColumn ? { ...draft, position: topPosition(tasks, draft.status) } : draft)
+
+    const isTaskChanged = (Object.keys(fields) as (keyof typeof fields)[]).some(
+      (key) => fields[key] !== previous[key],
+    )
+    if (isTaskChanged) {
+      const movedColumn = previous.status !== fields.status
+      updateTask(id, movedColumn ? { ...fields, position: topPosition(tasks, fields.status) } : fields)
+    }
+    updateAssignees(previous, assignee_ids)
   }
 
   function moveTask(id: string, status: TaskStatus, position: number) {

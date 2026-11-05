@@ -23,7 +23,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { groupByStatus, positionBetween, type TasksByStatus } from '../lib/board'
 import { isTaskStatus, STATUSES, type Task, type TaskStatus } from '../lib/types'
 import { Column } from './Column'
-import { TaskCard } from './TaskCard'
+import { TaskCard, type MembersById } from './TaskCard'
 
 const dropAnimation: DropAnimation = {
   duration: 180,
@@ -41,12 +41,13 @@ function findColumn(id: string, columns: TasksByStatus): TaskStatus | undefined 
 
 interface BoardProps {
   tasks: Task[]
+  membersById: MembersById
   onMoveTask: (id: string, status: TaskStatus, position: number) => void
   onOpenTask: (id: string) => void
   onAddTask: (status: TaskStatus) => void
 }
 
-export function Board({ tasks, onMoveTask, onOpenTask, onAddTask }: BoardProps) {
+export function Board({ tasks, membersById, onMoveTask, onOpenTask, onAddTask }: BoardProps) {
   const saved = useMemo(() => groupByStatus(tasks), [tasks])
 
   // While dragging, the layout follows this local copy. Nothing is saved until drop.
@@ -176,13 +177,14 @@ export function Board({ tasks, onMoveTask, onOpenTask, onAddTask }: BoardProps) 
             key={status}
             status={status}
             tasks={columns[status]}
+            membersById={membersById}
             onOpenTask={onOpenTask}
             onAddTask={onAddTask}
           />
         ))}
       </main>
       <DragOverlay dropAnimation={dropAnimation}>
-        {activeTask && <TaskCard task={activeTask} isOverlay />}
+        {activeTask && <TaskCard task={activeTask} membersById={membersById} isOverlay />}
       </DragOverlay>
     </DndContext>
   )
