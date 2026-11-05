@@ -1,0 +1,12 @@
+node_modules
+dist
+*.log
+
+# Local environment values are never committed. See .env.example.
+.env
+.env.*
+!.env.example
+
+.vercel
+.claude
+.DS_Store
