@@ -45,6 +45,26 @@ export interface TaskComment {
   created_at: string
 }
 
+export type ActivityAction =
+  | 'created'
+  | 'status'
+  | 'title'
+  | 'description'
+  | 'priority'
+  | 'due_date'
+  | 'assigned'
+  | 'unassigned'
+
+/** A history entry, written only by database triggers. */
+export interface TaskActivity {
+  id: string
+  task_id: string
+  action: ActivityAction
+  from_value: string | null
+  to_value: string | null
+  created_at: string
+}
+
 export function isTaskStatus(value: unknown): value is TaskStatus {
   return STATUSES.includes(value as TaskStatus)
 }

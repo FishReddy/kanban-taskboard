@@ -12,6 +12,7 @@ import {
   type TaskStatus,
   type TeamMember,
 } from '../lib/types'
+import { ActivityPanel } from './ActivityPanel'
 import { Avatar } from './Avatar'
 import { CommentsPanel } from './CommentsPanel'
 
@@ -25,6 +26,7 @@ interface TaskDialogProps {
   comments?: TaskComment[]
   onAddComment?: (body: string, onFailure?: () => void) => void
   onDeleteComment?: (id: string, onFailure?: () => void) => void
+  whenWritesSettled?: () => Promise<void>
   onSave: (draft: TaskDraft) => void
   onDelete?: () => void
   onClose: () => void
@@ -37,6 +39,7 @@ export function TaskDialog({
   comments = [],
   onAddComment,
   onDeleteComment,
+  whenWritesSettled,
   onSave,
   onDelete,
   onClose,
@@ -52,7 +55,12 @@ export function TaskDialog({
   const [titleError, setTitleError] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [commentDraft, setCommentDraft] = useState('')
-  const showComments = task !== undefined && onAddComment !== undefined && onDeleteComment !== undefined
+  const [sidePanel, setSidePanel] = useState<'comments' | 'activity'>('comments')
+  const showComments =
+    task !== undefined &&
+    onAddComment !== undefined &&
+    onDeleteComment !== undefined &&
+    whenWritesSettled !== undefined
 
   // showModal focuses the first focusable element (the close button), and it
   // ignores React's autoFocus, so the title has to be focused explicitly.
@@ -249,13 +257,40 @@ export function TaskDialog({
         </form>
 
         {showComments && (
-          <CommentsPanel
-            comments={comments}
-            draft={commentDraft}
-            onDraftChange={setCommentDraft}
-            onAdd={onAddComment}
-            onDelete={onDeleteComment}
-          />
+          <section className="side-panel" aria-label="Comments and activity">
+            <div className="segmented side-panel__tabs" role="radiogroup" aria-label="Show">
+              <label className="segmented__option">
+                <input
+                  type="radio"
+                  name="task-side-panel"
+                  checked={sidePanel === 'comments'}
+                  onChange={() => setSidePanel('comments')}
+                />
+                <span>{comments.length > 0 ? `Comments (${comments.length})` : 'Comments'}</span>
+              </label>
+              <label className="segmented__option">
+                <input
+                  type="radio"
+                  name="task-side-panel"
+                  checked={sidePanel === 'activity'}
+                  onChange={() => setSidePanel('activity')}
+                />
+                <span>Activity</span>
+              </label>
+            </div>
+
+            {sidePanel === 'comments' ? (
+              <CommentsPanel
+                comments={comments}
+                draft={commentDraft}
+                onDraftChange={setCommentDraft}
+                onAdd={onAddComment}
+                onDelete={onDeleteComment}
+              />
+            ) : (
+              <ActivityPanel taskId={task.id} whenSettled={whenWritesSettled} />
+            )}
+          </section>
         )}
       </div>
     </dialog>

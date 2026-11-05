@@ -13,10 +13,10 @@ export type EnqueueWrite = (
  * out of order. For example, assigning a member right after creating them
  * always inserts the member first. A failed write is rolled back and reported.
  */
-export function useWriteQueue(onError: (message: string) => void): EnqueueWrite {
+export function useWriteQueue(onError: (message: string) => void) {
   const queue = useRef<Promise<void>>(Promise.resolve())
 
-  return useCallback(
+  const enqueueWrite = useCallback<EnqueueWrite>(
     (write, rollback, failureMessage) => {
       queue.current = queue.current.then(async () => {
         let failed: boolean
@@ -33,4 +33,9 @@ export function useWriteQueue(onError: (message: string) => void): EnqueueWrite 
     },
     [onError],
   )
+
+  /** Resolves once every write queued so far has finished. Never rejects. */
+  const whenSettled = useCallback(() => queue.current, [])
+
+  return { enqueueWrite, whenSettled }
 }

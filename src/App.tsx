@@ -46,7 +46,7 @@ type DialogState =
 function Workspace({ userId }: { userId: string }) {
   const [toast, setToast] = useState<string | null>(null)
   const [dialog, setDialog] = useState<DialogState>({ mode: 'closed' })
-  const enqueueWrite = useWriteQueue(setToast)
+  const { enqueueWrite, whenSettled } = useWriteQueue(setToast)
   const taskStore = useTasks(userId, enqueueWrite)
   const teamStore = useTeamMembers(userId, enqueueWrite)
   const commentStore = useComments(userId, enqueueWrite)
@@ -129,6 +129,7 @@ function Workspace({ userId }: { userId: string }) {
           comments={commentsByTask.get(editingTask.id)}
           onAddComment={(body, onFailure) => commentStore.addComment(editingTask.id, body, onFailure)}
           onDeleteComment={commentStore.deleteComment}
+          whenWritesSettled={whenSettled}
           onClose={closeDialog}
           onSave={(draft) => {
             taskStore.editTask(editingTask.id, draft)

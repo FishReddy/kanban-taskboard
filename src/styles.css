@@ -1039,7 +1039,7 @@ textarea {
   overflow-y: auto;
 }
 
-.comments {
+.side-panel {
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -1047,24 +1047,16 @@ textarea {
   background: var(--bg);
 }
 
-.comments__header {
+.side-panel__tabs {
   flex: none;
+  margin: 14px 16px 10px;
+}
+
+.comments {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 16px 8px;
-}
-
-.comments__header h3 {
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.comments__count {
-  font-size: var(--text-xs);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-subtle);
+  flex-direction: column;
 }
 
 .comments__empty {
@@ -1159,6 +1151,83 @@ textarea {
   justify-content: flex-end;
 }
 
+.activity-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 16px;
+}
+
+.panel-message {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  font-size: var(--text-sm);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.activity-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 16px 16px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+/* The dot and the line running down to the next entry form the timeline. */
+.activity-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 0 14px 18px;
+}
+
+.activity-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.activity-item:first-child::before {
+  background: var(--accent);
+}
+
+.activity-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 3.5px;
+  top: 18px;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-strong);
+}
+
+.activity-item:last-child {
+  padding-bottom: 0;
+}
+
+.activity-item__text {
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.activity-item__time {
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+}
+
 /* ---------- Toast ---------- */
 
 .toast {
@@ -1234,11 +1303,12 @@ textarea {
   }
 
   .dialog--detail .dialog__body,
-  .comment-list {
+  .comment-list,
+  .activity-list {
     overflow-y: visible;
   }
 
-  .comments {
+  .side-panel {
     border-top: 1px solid var(--border);
     border-left: 0;
   }

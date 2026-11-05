@@ -7,7 +7,8 @@ import {
   type FormEvent,
   type SetStateAction,
 } from 'react'
-import { COMMENT_MAX, formatRelativeTime } from '../lib/comments'
+import { COMMENT_MAX } from '../lib/comments'
+import { formatRelativeTime } from '../lib/time'
 import type { TaskComment } from '../lib/types'
 
 interface CommentsPanelProps {
@@ -61,12 +62,7 @@ export function CommentsPanel({ comments, draft, onDraftChange, onAdd, onDelete 
   }
 
   return (
-    <section className="comments" aria-labelledby="comments-title">
-      <header className="comments__header">
-        <h3 id="comments-title">Comments</h3>
-        {comments.length > 0 && <span className="comments__count">{comments.length}</span>}
-      </header>
-
+    <div className="comments">
       {comments.length === 0 ? (
         <div className="comments__empty">
           <MessageSquare size={20} aria-hidden />
@@ -146,6 +142,6 @@ export function CommentsPanel({ comments, draft, onDraftChange, onAdd, onDelete 
           </button>
         </div>
       </form>
-    </section>
+    </div>
   )
 }
