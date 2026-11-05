@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { getInitials, MEMBER_COLORS, nextMemberColor, resolveMembers } from './team'
+import { getInitials, SWATCH_COLORS, nextColor, resolveMembers } from './team'
 import type { TeamMember } from './types'
 
 function member(overrides: Partial<TeamMember>): TeamMember {
   return {
     id: 'id',
     name: 'Name',
-    color: MEMBER_COLORS[0],
+    color: SWATCH_COLORS[0],
     user_id: 'user',
     created_at: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -30,15 +30,15 @@ describe('getInitials', () => {
   })
 })
 
-describe('nextMemberColor', () => {
+describe('nextColor', () => {
   it('picks the first unused colour', () => {
-    expect(nextMemberColor([])).toBe(MEMBER_COLORS[0])
-    expect(nextMemberColor([member({ color: MEMBER_COLORS[0] })])).toBe(MEMBER_COLORS[1])
+    expect(nextColor([])).toBe(SWATCH_COLORS[0])
+    expect(nextColor([member({ color: SWATCH_COLORS[0] })])).toBe(SWATCH_COLORS[1])
   })
 
   it('still returns a valid colour once all are used', () => {
-    const team = MEMBER_COLORS.map((color) => member({ color }))
-    expect(MEMBER_COLORS).toContain(nextMemberColor(team))
+    const team = SWATCH_COLORS.map((color) => member({ color }))
+    expect(SWATCH_COLORS).toContain(nextColor(team))
   })
 })
 

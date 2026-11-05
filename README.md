@@ -9,7 +9,8 @@ A Kanban board for planning and moving work, built with React, TypeScript and Su
 - Create, edit and delete tasks, with description, priority and due date
 - A team of named, colour-coded members, with one or more assignees per task
 - Comments on each task, shown oldest first with timestamps, and a comment count on the card
-- An activity timeline on each task, recording moves, edits and assignments
+- An activity timeline on each task, recording moves, edits, assignments and label changes
+- Custom colour-coded labels, several per task, with one-click filtering of the board
 - Instant updates that are undone with a message if a save fails
 - Loading, empty and error states, light and dark themes, and a responsive layout
 
@@ -47,7 +48,7 @@ Import the repository into Vercel, which detects Vite automatically, and add `VI
 
 ```
 supabase/schema.sql    Tables, constraints, trigger and RLS policies
-src/lib/               Types, Supabase client, and pure board, team, comment and activity logic (tested)
+src/lib/               Types, Supabase client, and pure board, team, label, comment and activity logic (tested)
 src/hooks/             Auth, data loading, optimistic writes and the ordered write queue
 src/components/        Board (drag and drop), Column, TaskCard, dialogs, avatars, UI states
 src/styles.css         Design tokens and component styles
@@ -55,4 +56,4 @@ src/styles.css         Design tokens and component styles
 
 ## Security
 
-The app talks to Supabase directly from the browser using only the public key, so the database enforces access. RLS policies restrict all reads and writes to rows where `user_id` matches the signed-in guest, and signed-out requests are denied. Assignments and comments also use composite foreign keys that include `user_id`, so the database rejects any link between records owned by different guests. The activity log is read-only for clients: database triggers write every entry in the same transaction as the change, so history can't be forged or edited and never records a change that failed to save.
+The app talks to Supabase directly from the browser using only the public key, so the database enforces access. RLS policies restrict all reads and writes to rows where `user_id` matches the signed-in guest, and signed-out requests are denied. Assignments, labels and comments also use composite foreign keys that include `user_id`, so the database rejects any link between records owned by different guests. The activity log is read-only for clients: database triggers write every entry in the same transaction as the change, so history can't be forged or edited and never records a change that failed to save.

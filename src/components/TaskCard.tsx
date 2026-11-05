@@ -3,22 +3,31 @@ import { CSS } from '@dnd-kit/utilities'
 import { Calendar, MessageSquare } from 'lucide-react'
 import { formatDueDate, PRIORITY_LABELS } from '../lib/board'
 import { describeCommentCount, type CommentsByTask } from '../lib/comments'
+import { resolveLabels } from '../lib/labels'
 import { resolveMembers } from '../lib/team'
-import type { Task, TeamMember } from '../lib/types'
+import type { Label, Task, TeamMember } from '../lib/types'
 import { AvatarStack } from './Avatar'
+import { LabelPill } from './LabelPill'
 
-export type MembersById = ReadonlyMap<string, TeamMember>
+const MAX_CARD_LABELS = 3
+
+/** What a card looks up beyond the task itself. */
+export interface CardData {
+  membersById: ReadonlyMap<string, TeamMember>
+  labelsById: ReadonlyMap<string, Label>
+  commentsByTask: CommentsByTask
+}
 
 interface TaskCardProps {
   task: Task
-  membersById: MembersById
-  commentsByTask: CommentsByTask
+  data: CardData
   isOverlay?: boolean
 }
 
-export function TaskCard({ task, membersById, commentsByTask, isOverlay = false }: TaskCardProps) {
-  const assignees = resolveMembers(task.assignee_ids, membersById)
-  const commentCount = commentsByTask.get(task.id)?.length ?? 0
+export function TaskCard({ task, data, isOverlay = false }: TaskCardProps) {
+  const assignees = resolveMembers(task.assignee_ids, data.membersById)
+  const labels = resolveLabels(task.label_ids, data.labelsById)
+  const commentCount = data.commentsByTask.get(task.id)?.length ?? 0
   const hasMeta =
     task.priority !== 'normal' || task.due_date || assignees.length > 0 || commentCount > 0
 
@@ -26,6 +35,16 @@ export function TaskCard({ task, membersById, commentsByTask, isOverlay = false 
     <article
       className={`card${isOverlay ? ' card--overlay' : ''}${task.status === 'done' ? ' card--done' : ''}`}
     >
+      {labels.length > 0 && (
+        <div className="card__labels">
+          {labels.slice(0, MAX_CARD_LABELS).map((label) => (
+            <LabelPill key={label.id} label={label} />
+          ))}
+          {labels.length > MAX_CARD_LABELS && (
+            <span className="card__labels-more">+{labels.length - MAX_CARD_LABELS}</span>
+          )}
+        </div>
+      )}
       <h3 className="card__title">{task.title}</h3>
       {task.description && <p className="card__description">{task.description}</p>}
       {hasMeta && (
@@ -65,18 +84,19 @@ export function TaskCard({ task, membersById, commentsByTask, isOverlay = false 
 
 interface SortableTaskCardProps {
   task: Task
-  membersById: MembersById
-  commentsByTask: CommentsByTask
+  data: CardData
   onOpen: (id: string) => void
 }
 
-export function SortableTaskCard({ task, membersById, commentsByTask, onOpen }: SortableTaskCardProps) {
+export function SortableTaskCard({ task, data, onOpen }: SortableTaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   })
-  const assigneeNames = resolveMembers(task.assignee_ids, membersById).map((member) => member.name)
+  const assigneeNames = resolveMembers(task.assignee_ids, data.membersById).map((member) => member.name)
   const assignedTo = assigneeNames.length > 0 ? ` Assigned to ${assigneeNames.join(', ')}.` : ''
-  const commentCount = commentsByTask.get(task.id)?.length ?? 0
+  const labelNames = resolveLabels(task.label_ids, data.labelsById).map((label) => label.name)
+  const labelled = labelNames.length > 0 ? ` Labels: ${labelNames.join(', ')}.` : ''
+  const commentCount = data.commentsByTask.get(task.id)?.length ?? 0
   const commented = commentCount > 0 ? ` ${describeCommentCount(commentCount)}.` : ''
 
   return (
@@ -86,7 +106,7 @@ export function SortableTaskCard({ task, membersById, commentsByTask, onOpen }: 
       style={{ transform: CSS.Translate.toString(transform), transition }}
       {...attributes}
       {...listeners}
-      aria-label={`${task.title}.${assignedTo}${commented} Press Enter to open, Space to pick up and move.`}
+      aria-label={`${task.title}.${assignedTo}${labelled}${commented} Press Enter to open, Space to pick up and move.`}
       onClick={() => onOpen(task.id)}
       onKeyDown={(event) => {
         if (event.key === 'Enter' && !isDragging) {
@@ -98,7 +118,7 @@ export function SortableTaskCard({ task, membersById, commentsByTask, onOpen }: 
         listeners?.onKeyDown?.(event)
       }}
     >
-      <TaskCard task={task} membersById={membersById} commentsByTask={commentsByTask} />
+      <TaskCard task={task} data={data} />
     </div>
   )
 }

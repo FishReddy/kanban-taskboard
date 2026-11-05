@@ -5,6 +5,7 @@ import { COLUMNS, PRIORITY_LABELS } from '../lib/board'
 import {
   PRIORITIES,
   STATUSES,
+  type Label,
   type Task,
   type TaskComment,
   type TaskDraft,
@@ -15,6 +16,7 @@ import {
 import { ActivityPanel } from './ActivityPanel'
 import { Avatar } from './Avatar'
 import { CommentsPanel } from './CommentsPanel'
+import { LabelPill } from './LabelPill'
 
 const TITLE_MAX = 200
 
@@ -22,7 +24,10 @@ interface TaskDialogProps {
   /** Present when editing; absent when creating. */
   task?: Task
   initialStatus?: TaskStatus
+  /** Labels a new task starts with, so it stays visible under an active filter. */
+  initialLabelIds?: string[]
   members: TeamMember[]
+  labels: Label[]
   comments?: TaskComment[]
   onAddComment?: (body: string, onFailure?: () => void) => void
   onDeleteComment?: (id: string, onFailure?: () => void) => void
@@ -35,7 +40,9 @@ interface TaskDialogProps {
 export function TaskDialog({
   task,
   initialStatus = 'todo',
+  initialLabelIds = [],
   members,
+  labels,
   comments = [],
   onAddComment,
   onDeleteComment,
@@ -52,6 +59,8 @@ export function TaskDialog({
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'normal')
   const [dueDate, setDueDate] = useState(task?.due_date ?? '')
   const [assigneeIds, setAssigneeIds] = useState<string[]>(task?.assignee_ids ?? [])
+  const startingLabelIds = task?.label_ids ?? initialLabelIds
+  const [labelIds, setLabelIds] = useState<string[]>(startingLabelIds)
   const [titleError, setTitleError] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [commentDraft, setCommentDraft] = useState('')
@@ -75,11 +84,18 @@ export function TaskDialog({
     priority !== (task?.priority ?? 'normal') ||
     dueDate !== (task?.due_date ?? '') ||
     assigneeIds.join() !== (task?.assignee_ids ?? []).join() ||
+    labelIds.join() !== startingLabelIds.join() ||
     commentDraft.trim() !== ''
 
   function toggleAssignee(memberId: string) {
     setAssigneeIds((current) =>
       current.includes(memberId) ? current.filter((id) => id !== memberId) : [...current, memberId],
+    )
+  }
+
+  function toggleLabel(labelId: string) {
+    setLabelIds((current) =>
+      current.includes(labelId) ? current.filter((id) => id !== labelId) : [...current, labelId],
     )
   }
 
@@ -99,6 +115,7 @@ export function TaskDialog({
       priority,
       due_date: dueDate || null,
       assignee_ids: assigneeIds,
+      label_ids: labelIds,
     })
   }
 
@@ -214,17 +231,43 @@ export function TaskDialog({
                   No team yet. Add people with the Team button above the board.
                 </p>
               ) : (
-                <div className="assignee-picker">
+                <div className="chip-picker">
                   {members.map((member) => (
-                    <label key={member.id} className="assignee-option">
+                    <label key={member.id} className="chip-option">
                       <input
                         type="checkbox"
                         checked={assigneeIds.includes(member.id)}
                         onChange={() => toggleAssignee(member.id)}
                       />
-                      <span className="assignee-option__chip">
+                      <span className="chip-option__chip">
                         <Avatar member={member} size="small" />
                         {member.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </fieldset>
+
+            <fieldset className="field">
+              <legend>
+                Labels <span className="field__optional">Optional</span>
+              </legend>
+              {labels.length === 0 ? (
+                <p className="field__hint">
+                  No labels yet. Create them with the Labels button above the board.
+                </p>
+              ) : (
+                <div className="chip-picker">
+                  {labels.map((label) => (
+                    <label key={label.id} className="chip-option">
+                      <input
+                        type="checkbox"
+                        checked={labelIds.includes(label.id)}
+                        onChange={() => toggleLabel(label.id)}
+                      />
+                      <span className="chip-option__chip chip-option__chip--label">
+                        <LabelPill label={label} />
                       </span>
                     </label>
                   ))}

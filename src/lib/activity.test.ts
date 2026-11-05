@@ -43,4 +43,9 @@ describe('describeActivity', () => {
     expect(describeEntry('assigned', null, 'Ada')).toBe('Assigned Ada')
     expect(describeEntry('unassigned', 'Ada', null)).toBe('Unassigned Ada')
   })
+
+  it('names the label for label changes', () => {
+    expect(describeEntry('labeled', null, 'Bug')).toBe('Added the label Bug')
+    expect(describeEntry('unlabeled', 'Bug', null)).toBe('Removed the label Bug')
+  })
 })

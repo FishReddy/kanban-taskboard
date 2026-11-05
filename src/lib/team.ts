@@ -1,7 +1,7 @@
 import type { TeamMember } from './types'
 
-/** Avatar colours, all dark enough for white initials in both themes. */
-export const MEMBER_COLORS = [
+/** Colours for avatars and labels, all dark enough for white initials in both themes. */
+export const SWATCH_COLORS = [
   '#5b5bd6',
   '#c2298a',
   '#d13438',
@@ -21,12 +21,12 @@ export function getInitials(name: string): string {
   return (first + last).toUpperCase()
 }
 
-/** The first colour nobody on the team has yet, cycling once all are in use. */
-export function nextMemberColor(members: TeamMember[]): string {
-  const used = new Set(members.map((member) => member.color))
+/** The first colour not used yet, cycling once all are in use. */
+export function nextColor(items: { color: string }[]): string {
+  const used = new Set(items.map((item) => item.color))
   return (
-    MEMBER_COLORS.find((color) => !used.has(color)) ??
-    MEMBER_COLORS[members.length % MEMBER_COLORS.length]
+    SWATCH_COLORS.find((color) => !used.has(color)) ??
+    SWATCH_COLORS[items.length % SWATCH_COLORS.length]
   )
 }
 

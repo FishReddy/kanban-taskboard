@@ -3,20 +3,19 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Plus } from 'lucide-react'
 import { useMemo } from 'react'
 import { COLUMNS } from '../lib/board'
-import type { CommentsByTask } from '../lib/comments'
 import type { Task, TaskStatus } from '../lib/types'
-import { SortableTaskCard, type MembersById } from './TaskCard'
+import { SortableTaskCard, type CardData } from './TaskCard'
 
 interface ColumnProps {
   status: TaskStatus
   tasks: Task[]
-  membersById: MembersById
-  commentsByTask: CommentsByTask
+  cardData: CardData
+  isFiltered: boolean
   onOpenTask: (id: string) => void
   onAddTask: (status: TaskStatus) => void
 }
 
-export function Column({ status, tasks, membersById, commentsByTask, onOpenTask, onAddTask }: ColumnProps) {
+export function Column({ status, tasks, cardData, isFiltered, onOpenTask, onAddTask }: ColumnProps) {
   const { title, emptyHint } = COLUMNS[status]
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks])
@@ -43,8 +42,7 @@ export function Column({ status, tasks, membersById, commentsByTask, onOpenTask,
             <SortableTaskCard
               key={task.id}
               task={task}
-              membersById={membersById}
-              commentsByTask={commentsByTask}
+              data={cardData}
               onOpen={onOpenTask}
             />
           ))}
@@ -52,8 +50,8 @@ export function Column({ status, tasks, membersById, commentsByTask, onOpenTask,
 
         {tasks.length === 0 && (
           <div className="column__empty">
-            <p>{emptyHint}</p>
-            {status === 'todo' && (
+            <p>{isFiltered ? 'No matching tasks here.' : emptyHint}</p>
+            {status === 'todo' && !isFiltered && (
               <button type="button" className="button button--ghost" onClick={() => onAddTask(status)}>
                 <Plus size={14} aria-hidden />
                 Add a task

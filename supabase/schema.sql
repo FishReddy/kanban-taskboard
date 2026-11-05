@@ -199,7 +199,7 @@ create table if not exists public.task_activity (
   user_id    uuid not null,
   action     text not null check (action in (
                'created', 'status', 'title', 'description', 'priority', 'due_date',
-               'assigned', 'unassigned'
+               'assigned', 'unassigned', 'labeled', 'unlabeled'
              )),
   from_value text,
   to_value   text,
@@ -327,6 +327,126 @@ where not exists (
   select 1 from public.task_activity as activity
   where activity.task_id = task.id and activity.action = 'created'
 );
+
+-- ---------------------------------------------------------------------------
+-- Labels
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.labels (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null check (char_length(btrim(name)) between 1 and 30),
+  color      text not null default '#5b5bd6' check (color ~ '^#[0-9a-f]{6}$'),
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (id, user_id)
+);
+
+-- Two labels that differ only by case would be impossible to tell apart.
+create unique index if not exists labels_user_name_key
+  on public.labels (user_id, lower(btrim(name)));
+
+-- As with assignees, both foreign keys include user_id, so a task and a label
+-- can only be linked if they belong to the same user.
+create table if not exists public.task_labels (
+  task_id    uuid not null,
+  label_id   uuid not null,
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (task_id, label_id),
+  foreign key (task_id, user_id) references public.tasks (id, user_id) on delete cascade,
+  foreign key (label_id, user_id) references public.labels (id, user_id) on delete cascade
+);
+
+-- Support the cascades from a deleted label or user.
+create index if not exists task_labels_label_user_idx on public.task_labels (label_id, user_id);
+create index if not exists task_labels_user_idx on public.task_labels (user_id);
+
+alter table public.labels enable row level security;
+alter table public.task_labels enable row level security;
+
+revoke all on table public.labels from anon, authenticated;
+revoke all on table public.task_labels from anon, authenticated;
+grant select, insert, update, delete on table public.labels to authenticated;
+grant select, insert, delete on table public.task_labels to authenticated;
+
+drop policy if exists "Users can read their own labels" on public.labels;
+create policy "Users can read their own labels"
+  on public.labels for select to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can create their own labels" on public.labels;
+create policy "Users can create their own labels"
+  on public.labels for insert to authenticated
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can update their own labels" on public.labels;
+create policy "Users can update their own labels"
+  on public.labels for update to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can delete their own labels" on public.labels;
+create policy "Users can delete their own labels"
+  on public.labels for delete to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can read their own task labels" on public.task_labels;
+create policy "Users can read their own task labels"
+  on public.task_labels for select to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can add their own task labels" on public.task_labels;
+create policy "Users can add their own task labels"
+  on public.task_labels for insert to authenticated
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can remove their own task labels" on public.task_labels;
+create policy "Users can remove their own task labels"
+  on public.task_labels for delete to authenticated
+  using ((select auth.uid()) = user_id);
+
+-- Label changes join the activity log. Databases created before labels existed
+-- need the wider list of actions.
+alter table public.task_activity drop constraint if exists task_activity_action_check;
+alter table public.task_activity add constraint task_activity_action_check check (action in (
+  'created', 'status', 'title', 'description', 'priority', 'due_date',
+  'assigned', 'unassigned', 'labeled', 'unlabeled'
+));
+
+create or replace function public.log_label_changes()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  label_name text;
+begin
+  if tg_op = 'INSERT' then
+    select name into label_name from public.labels where id = new.label_id;
+    insert into public.task_activity (task_id, user_id, action, to_value)
+    values (new.task_id, new.user_id, 'labeled', label_name);
+    return null;
+  end if;
+
+  -- Skipped when this delete is a cascade from the task or from the label being
+  -- deleted outright: the first leaves no task, the second is not a task edit.
+  select name into label_name from public.labels where id = old.label_id;
+  if label_name is not null
+     and exists (select 1 from public.tasks where id = old.task_id) then
+    insert into public.task_activity (task_id, user_id, action, from_value)
+    values (old.task_id, old.user_id, 'unlabeled', label_name);
+  end if;
+  return null;
+end;
+$$;
+
+revoke execute on function public.log_label_changes() from public, anon, authenticated;
+
+drop trigger if exists task_labels_log_changes on public.task_labels;
+create trigger task_labels_log_changes
+  after insert or delete on public.task_labels
+  for each row execute function public.log_label_changes();
 
 -- Makes the API pick up the new tables straight away.
 notify pgrst, 'reload schema';

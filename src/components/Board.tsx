@@ -21,10 +21,9 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { groupByStatus, positionBetween, type TasksByStatus } from '../lib/board'
-import type { CommentsByTask } from '../lib/comments'
 import { isTaskStatus, STATUSES, type Task, type TaskStatus } from '../lib/types'
 import { Column } from './Column'
-import { TaskCard, type MembersById } from './TaskCard'
+import { TaskCard, type CardData } from './TaskCard'
 
 const dropAnimation: DropAnimation = {
   duration: 180,
@@ -42,8 +41,8 @@ function findColumn(id: string, columns: TasksByStatus): TaskStatus | undefined 
 
 interface BoardProps {
   tasks: Task[]
-  membersById: MembersById
-  commentsByTask: CommentsByTask
+  cardData: CardData
+  isFiltered: boolean
   onMoveTask: (id: string, status: TaskStatus, position: number) => void
   onOpenTask: (id: string) => void
   onAddTask: (status: TaskStatus) => void
@@ -51,8 +50,8 @@ interface BoardProps {
 
 export function Board({
   tasks,
-  membersById,
-  commentsByTask,
+  cardData,
+  isFiltered,
   onMoveTask,
   onOpenTask,
   onAddTask,
@@ -186,17 +185,15 @@ export function Board({
             key={status}
             status={status}
             tasks={columns[status]}
-            membersById={membersById}
-            commentsByTask={commentsByTask}
+            cardData={cardData}
+            isFiltered={isFiltered}
             onOpenTask={onOpenTask}
             onAddTask={onAddTask}
           />
         ))}
       </main>
       <DragOverlay dropAnimation={dropAnimation}>
-        {activeTask && (
-          <TaskCard task={activeTask} membersById={membersById} commentsByTask={commentsByTask} isOverlay />
-        )}
+        {activeTask && <TaskCard task={activeTask} data={cardData} isOverlay />}
       </DragOverlay>
     </DndContext>
   )

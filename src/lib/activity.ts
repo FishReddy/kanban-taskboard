@@ -25,5 +25,9 @@ export function describeActivity(entry: TaskActivity, now = new Date()): string 
       return `Assigned ${to}`
     case 'unassigned':
       return `Unassigned ${from}`
+    case 'labeled':
+      return `Added the label ${to}`
+    case 'unlabeled':
+      return `Removed the label ${from}`
   }
 }
