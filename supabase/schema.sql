@@ -7,8 +7,8 @@ create table if not exists public.tasks (
   description text check (char_length(description) <= 5000),
   status      text not null default 'todo'
               check (status in ('todo', 'in_progress', 'in_review', 'done')),
-  priority    text not null default 'normal'
-              check (priority in ('low', 'normal', 'high')),
+  priority    text not null default 'none'
+              check (priority in ('none', 'low', 'medium', 'high')),
   due_date    date,
   -- Fractional sort key within a column, so a move only rewrites one row.
   position    double precision not null default 0,
@@ -447,6 +447,30 @@ drop trigger if exists task_labels_log_changes on public.task_labels;
 create trigger task_labels_log_changes
   after insert or delete on public.task_labels
   for each row execute function public.log_label_changes();
+
+-- ---------------------------------------------------------------------------
+-- Priority levels: "normal" became "medium", and "none" is the new default
+-- ---------------------------------------------------------------------------
+
+-- Only matters for databases created before this change, and does nothing on a
+-- second run. The triggers are paused because a rename isn't a change to the
+-- task, so it shouldn't add to any task's history or touch its updated_at.
+alter table public.tasks drop constraint if exists tasks_priority_check;
+
+alter table public.tasks disable trigger tasks_log_changes;
+alter table public.tasks disable trigger tasks_set_updated_at;
+update public.tasks set priority = 'medium' where priority = 'normal';
+alter table public.tasks enable trigger tasks_log_changes;
+alter table public.tasks enable trigger tasks_set_updated_at;
+
+alter table public.tasks add constraint tasks_priority_check
+  check (priority in ('none', 'low', 'medium', 'high'));
+alter table public.tasks alter column priority set default 'none';
+
+update public.task_activity set from_value = 'medium'
+  where action = 'priority' and from_value = 'normal';
+update public.task_activity set to_value = 'medium'
+  where action = 'priority' and to_value = 'normal';
 
 -- Makes the API pick up the new tables straight away.
 notify pgrst, 'reload schema';

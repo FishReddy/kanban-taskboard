@@ -63,7 +63,7 @@ export function newTaskValues(
   filters: BoardFilterValues,
 ): Pick<TaskDraft, 'priority' | 'assignee_ids' | 'label_ids'> {
   return {
-    priority: filters.priority ?? 'normal',
+    priority: filters.priority ?? 'none',
     assignee_ids: filters.assignee && filters.assignee !== UNASSIGNED ? [filters.assignee] : [],
     label_ids: filters.labelIds,
   }

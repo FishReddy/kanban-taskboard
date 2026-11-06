@@ -792,7 +792,8 @@ textarea {
   height: 10px;
 }
 
-.priority--low .priority__bars i:nth-child(n + 2) {
+.priority--low .priority__bars i:nth-child(n + 2),
+.priority--medium .priority__bars i:nth-child(3) {
   opacity: 0.3;
 }
 

@@ -8,8 +8,9 @@ export const COLUMNS: Record<TaskStatus, { title: string; emptyHint: string }> =
 }
 
 export const PRIORITY_LABELS: Record<TaskPriority, string> = {
+  none: 'None',
   low: 'Low',
-  normal: 'Normal',
+  medium: 'Medium',
   high: 'High',
 }
 

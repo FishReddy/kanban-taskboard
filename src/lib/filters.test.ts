@@ -14,7 +14,7 @@ const members = new Map([['ada', { id: 'ada' } as TeamMember]])
 
 function task(
   title: string,
-  priority: TaskPriority = 'normal',
+  priority: TaskPriority = 'none',
   assignee_ids: string[] = [],
   label_ids: string[] = [],
 ) {
@@ -44,20 +44,26 @@ describe('matchesFilters', () => {
     expect(matches(task('A', 'low'), { priority: 'high' })).toBe(false)
   })
 
+  it('can find tasks with no priority', () => {
+    expect(matches(task('A', 'none'), { priority: 'none' })).toBe(true)
+    expect(matches(task('A', 'medium'), { priority: 'none' })).toBe(false)
+    expect(hasActiveFilters({ ...NO_FILTERS, priority: 'none' })).toBe(true)
+  })
+
   it('filters by assignee', () => {
-    expect(matches(task('A', 'normal', ['ada']), { assignee: 'ada' })).toBe(true)
-    expect(matches(task('A', 'normal', []), { assignee: 'ada' })).toBe(false)
+    expect(matches(task('A', 'medium', ['ada']), { assignee: 'ada' })).toBe(true)
+    expect(matches(task('A', 'medium', []), { assignee: 'ada' })).toBe(false)
   })
 
   it('finds unassigned tasks, including those whose only assignee was just removed', () => {
     expect(matches(task('A'), { assignee: UNASSIGNED })).toBe(true)
-    expect(matches(task('A', 'normal', ['gone']), { assignee: UNASSIGNED })).toBe(true)
-    expect(matches(task('A', 'normal', ['ada']), { assignee: UNASSIGNED })).toBe(false)
+    expect(matches(task('A', 'medium', ['gone']), { assignee: UNASSIGNED })).toBe(true)
+    expect(matches(task('A', 'medium', ['ada']), { assignee: UNASSIGNED })).toBe(false)
   })
 
   it('matches any of several labels', () => {
-    expect(matches(task('A', 'normal', [], ['x']), { labelIds: ['x', 'y'] })).toBe(true)
-    expect(matches(task('A', 'normal', [], ['z']), { labelIds: ['x', 'y'] })).toBe(false)
+    expect(matches(task('A', 'medium', [], ['x']), { labelIds: ['x', 'y'] })).toBe(true)
+    expect(matches(task('A', 'medium', [], ['z']), { labelIds: ['x', 'y'] })).toBe(false)
   })
 
   it('requires every kind of filter to match', () => {
@@ -102,7 +108,7 @@ describe('pruneFilters', () => {
 
 describe('newTaskValues', () => {
   it('uses defaults with no filters', () => {
-    expect(newTaskValues(NO_FILTERS)).toEqual({ priority: 'normal', assignee_ids: [], label_ids: [] })
+    expect(newTaskValues(NO_FILTERS)).toEqual({ priority: 'none', assignee_ids: [], label_ids: [] })
   })
 
   it('copies the active filters', () => {

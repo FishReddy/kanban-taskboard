@@ -16,6 +16,8 @@ export function describeActivity(entry: TaskActivity, now = new Date()): string 
     case 'description':
       return 'Updated the description'
     case 'priority':
+      if (from === 'none') return `Set the priority to ${PRIORITY_LABELS[to as TaskPriority]}`
+      if (to === 'none') return 'Removed the priority'
       return `Changed priority from ${PRIORITY_LABELS[from as TaskPriority]} to ${PRIORITY_LABELS[to as TaskPriority]}`
     case 'due_date':
       if (!from) return `Set the due date to ${formatDueDate(to, now)}`

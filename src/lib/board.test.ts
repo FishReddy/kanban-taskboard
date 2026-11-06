@@ -8,7 +8,7 @@ function task(overrides: Partial<Task>): Task {
     title: 'title',
     description: null,
     status: 'todo',
-    priority: 'normal',
+    priority: 'none',
     due_date: null,
     position: 0,
     user_id: 'user',

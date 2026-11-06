@@ -1,7 +1,7 @@
 export const STATUSES = ['todo', 'in_progress', 'in_review', 'done'] as const
 export type TaskStatus = (typeof STATUSES)[number]
 
-export const PRIORITIES = ['low', 'normal', 'high'] as const
+export const PRIORITIES = ['none', 'low', 'medium', 'high'] as const
 export type TaskPriority = (typeof PRIORITIES)[number]
 
 export interface Task {

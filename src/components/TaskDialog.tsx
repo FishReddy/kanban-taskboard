@@ -20,7 +20,7 @@ import { LabelPill } from './LabelPill'
 
 const TITLE_MAX = 200
 const NEW_TASK_DEFAULTS: Pick<TaskDraft, 'priority' | 'assignee_ids' | 'label_ids'> = {
-  priority: 'normal',
+  priority: 'none',
   assignee_ids: [],
   label_ids: [],
 }

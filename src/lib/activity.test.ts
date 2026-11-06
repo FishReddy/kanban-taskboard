@@ -22,7 +22,12 @@ describe('describeActivity', () => {
 
   it('uses column titles and priority labels, not stored keys', () => {
     expect(describeEntry('status', 'todo', 'in_progress')).toBe('Moved from To Do → In Progress')
-    expect(describeEntry('priority', 'normal', 'high')).toBe('Changed priority from Normal to High')
+    expect(describeEntry('priority', 'medium', 'high')).toBe('Changed priority from Medium to High')
+  })
+
+  it('reads naturally when a priority is first set or removed', () => {
+    expect(describeEntry('priority', 'none', 'low')).toBe('Set the priority to Low')
+    expect(describeEntry('priority', 'high', 'none')).toBe('Removed the priority')
   })
 
   it('quotes old and new titles', () => {

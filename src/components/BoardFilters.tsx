@@ -77,7 +77,7 @@ export function BoardFilters({
         <option value="">Any priority</option>
         {PRIORITIES.map((priority) => (
           <option key={priority} value={priority}>
-            {PRIORITY_LABELS[priority]} priority
+            {priority === 'none' ? 'No priority' : `${PRIORITY_LABELS[priority]} priority`}
           </option>
         ))}
       </select>

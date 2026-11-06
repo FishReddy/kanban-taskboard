@@ -40,7 +40,7 @@ export function TaskCard({ task, data, isOverlay = false }: TaskCardProps) {
   const commentCount = data.commentsByTask.get(task.id)?.length ?? 0
   const due = getDueInfo(task)
   const hasMeta =
-    task.priority !== 'normal' || task.due_date || assignees.length > 0 || commentCount > 0
+    task.priority !== 'none' || task.due_date || assignees.length > 0 || commentCount > 0
 
   return (
     <article
@@ -60,7 +60,7 @@ export function TaskCard({ task, data, isOverlay = false }: TaskCardProps) {
       {task.description && <p className="card__description">{task.description}</p>}
       {hasMeta && (
         <div className="card__meta">
-          {task.priority !== 'normal' && (
+          {task.priority !== 'none' && (
             <span className={`priority priority--${task.priority}`}>
               <span className="priority__bars" aria-hidden>
                 <i />
