@@ -25,6 +25,7 @@ import {
   pruneFilters,
   type BoardFilterValues,
 } from './lib/filters'
+import { computeBoardStats } from './lib/stats'
 import type { TaskStatus } from './lib/types'
 
 export default function App() {
@@ -99,7 +100,10 @@ function Workspace({ userId }: { userId: string }) {
 
   return (
     <div className="app">
-      <Header onNewTask={isReady ? () => setDialog({ mode: 'create', status: 'todo' }) : undefined} />
+      <Header
+        stats={isReady ? computeBoardStats(tasks) : undefined}
+        onNewTask={isReady ? () => setDialog({ mode: 'create', status: 'todo' }) : undefined}
+      />
 
       {failedLoad ? (
         <ErrorState

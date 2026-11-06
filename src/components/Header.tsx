@@ -1,5 +1,7 @@
 import { Moon, Plus, Sun, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import type { BoardStatValues } from '../lib/stats'
+import { BoardStats } from './BoardStats'
 
 type Theme = 'light' | 'dark'
 
@@ -25,8 +27,14 @@ function useTheme() {
   return { theme, toggle }
 }
 
-/** `onNewTask` is omitted until the board is usable, which disables the button. */
-export function Header({ onNewTask }: { onNewTask?: () => void }) {
+interface HeaderProps {
+  /** Omitted until the board has loaded, so it never shows misleading zeros. */
+  stats?: BoardStatValues
+  /** Omitted until the board is usable, which disables the button. */
+  onNewTask?: () => void
+}
+
+export function Header({ stats, onNewTask }: HeaderProps) {
   const { theme, toggle } = useTheme()
 
   return (
@@ -35,6 +43,8 @@ export function Header({ onNewTask }: { onNewTask?: () => void }) {
         <img className="header__logo" src="/favicon.svg" alt="" width={24} height={24} />
         <h1 className="header__title">Taskboard</h1>
       </div>
+
+      {stats && <BoardStats stats={stats} />}
 
       <div className="header__actions">
         <span

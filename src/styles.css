@@ -168,6 +168,38 @@ textarea {
   gap: 8px;
 }
 
+.board-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 auto 0 12px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+.board-stats__item {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: baseline;
+  gap: 5px;
+  font-size: var(--text-sm);
+}
+
+.board-stats__item dt {
+  color: var(--text-muted);
+}
+
+.board-stats__item dd {
+  margin: 0;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-stats__item--alert dt,
+.board-stats__item--alert dd {
+  color: var(--due-overdue);
+}
+
 .guest-badge {
   display: inline-flex;
   align-items: center;
@@ -1520,6 +1552,21 @@ textarea {
     display: none;
   }
 
+  /* Gets its own full-width row below the logo and buttons. */
+  .header {
+    flex-wrap: wrap;
+  }
+
+  .board-stats {
+    order: 1;
+    flex: 1 1 100%;
+    justify-content: space-between;
+    margin: 0;
+    padding: 8px 0 0;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+
   /* Lets the count and the Team and Labels buttons share a row. */
   .filters {
     display: contents;
@@ -1529,8 +1576,9 @@ textarea {
     flex: 1 1 100%;
   }
 
+  /* Wide enough basis that the buttons wrap below instead of squeezing these. */
   .filter-select {
-    flex: 1 1 0;
+    flex: 1 1 40%;
     min-width: 0;
     max-width: none;
   }
