@@ -19,13 +19,18 @@ import { CommentsPanel } from './CommentsPanel'
 import { LabelPill } from './LabelPill'
 
 const TITLE_MAX = 200
+const NEW_TASK_DEFAULTS: Pick<TaskDraft, 'priority' | 'assignee_ids' | 'label_ids'> = {
+  priority: 'normal',
+  assignee_ids: [],
+  label_ids: [],
+}
 
 interface TaskDialogProps {
   /** Present when editing; absent when creating. */
   task?: Task
   initialStatus?: TaskStatus
-  /** Labels a new task starts with, so it stays visible under an active filter. */
-  initialLabelIds?: string[]
+  /** What a new task starts with, so it stays visible under active filters. */
+  initialValues?: Pick<TaskDraft, 'priority' | 'assignee_ids' | 'label_ids'>
   members: TeamMember[]
   labels: Label[]
   comments?: TaskComment[]
@@ -40,7 +45,7 @@ interface TaskDialogProps {
 export function TaskDialog({
   task,
   initialStatus = 'todo',
-  initialLabelIds = [],
+  initialValues = NEW_TASK_DEFAULTS,
   members,
   labels,
   comments = [],
@@ -56,11 +61,11 @@ export function TaskDialog({
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? initialStatus)
-  const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'normal')
+  const starting = task ?? initialValues
+  const [priority, setPriority] = useState<TaskPriority>(starting.priority)
   const [dueDate, setDueDate] = useState(task?.due_date ?? '')
-  const [assigneeIds, setAssigneeIds] = useState<string[]>(task?.assignee_ids ?? [])
-  const startingLabelIds = task?.label_ids ?? initialLabelIds
-  const [labelIds, setLabelIds] = useState<string[]>(startingLabelIds)
+  const [assigneeIds, setAssigneeIds] = useState<string[]>(starting.assignee_ids)
+  const [labelIds, setLabelIds] = useState<string[]>(starting.label_ids)
   const [titleError, setTitleError] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [commentDraft, setCommentDraft] = useState('')
@@ -81,10 +86,10 @@ export function TaskDialog({
     title !== (task?.title ?? '') ||
     description !== (task?.description ?? '') ||
     status !== (task?.status ?? initialStatus) ||
-    priority !== (task?.priority ?? 'normal') ||
+    priority !== starting.priority ||
     dueDate !== (task?.due_date ?? '') ||
-    assigneeIds.join() !== (task?.assignee_ids ?? []).join() ||
-    labelIds.join() !== startingLabelIds.join() ||
+    assigneeIds.join() !== starting.assignee_ids.join() ||
+    labelIds.join() !== starting.label_ids.join() ||
     commentDraft.trim() !== ''
 
   function toggleAssignee(memberId: string) {

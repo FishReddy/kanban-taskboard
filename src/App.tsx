@@ -4,8 +4,8 @@ import { AvatarStack } from './components/Avatar'
 import { Board } from './components/Board'
 import { BoardSkeleton } from './components/BoardSkeleton'
 import { ErrorState } from './components/ErrorState'
+import { BoardFilters } from './components/BoardFilters'
 import { Header } from './components/Header'
-import { LabelFilter } from './components/LabelFilter'
 import { LabelsDialog } from './components/LabelsDialog'
 import { TaskDialog } from './components/TaskDialog'
 import { TeamDialog } from './components/TeamDialog'
@@ -17,7 +17,14 @@ import { useTasks } from './hooks/useTasks'
 import { useTeamMembers } from './hooks/useTeamMembers'
 import { useWriteQueue } from './hooks/useWriteQueue'
 import { groupCommentsByTask } from './lib/comments'
-import { filterTasksByLabels } from './lib/labels'
+import {
+  hasActiveFilters,
+  matchesFilters,
+  newTaskValues,
+  NO_FILTERS,
+  pruneFilters,
+  type BoardFilterValues,
+} from './lib/filters'
 import type { TaskStatus } from './lib/types'
 
 export default function App() {
@@ -51,7 +58,7 @@ type DialogState =
 function Workspace({ userId }: { userId: string }) {
   const [toast, setToast] = useState<string | null>(null)
   const [dialog, setDialog] = useState<DialogState>({ mode: 'closed' })
-  const [filterLabelIds, setFilterLabelIds] = useState<string[]>([])
+  const [filters, setFilters] = useState<BoardFilterValues>(NO_FILTERS)
   const { enqueueWrite, whenSettled } = useWriteQueue(setToast)
   const taskStore = useTasks(userId, enqueueWrite)
   const teamStore = useTeamMembers(userId, enqueueWrite)
@@ -73,18 +80,15 @@ function Workspace({ userId }: { userId: string }) {
   const dismissToast = useCallback(() => setToast(null), [])
   const closeDialog = () => setDialog({ mode: 'closed' })
 
-  // A deleted label can't keep filtering the board.
-  const activeLabelIds = useMemo(
-    () => filterLabelIds.filter((id) => cardData.labelsById.has(id)),
-    [filterLabelIds, cardData.labelsById],
+  // A deleted label or member can't keep filtering the board.
+  const activeFilters = useMemo(
+    () => pruneFilters(filters, cardData.membersById, cardData.labelsById),
+    [filters, cardData.membersById, cardData.labelsById],
   )
-  const visibleTasks = useMemo(() => filterTasksByLabels(tasks, activeLabelIds), [tasks, activeLabelIds])
-
-  function toggleFilterLabel(id: string) {
-    setFilterLabelIds(
-      activeLabelIds.includes(id) ? activeLabelIds.filter((other) => other !== id) : [...activeLabelIds, id],
-    )
-  }
+  const visibleTasks = useMemo(
+    () => tasks.filter((task) => matchesFilters(task, activeFilters, cardData.membersById)),
+    [tasks, activeFilters, cardData.membersById],
+  )
 
   const loadStates = [taskStore.loadState, teamStore.loadState, labelStore.loadState, commentStore.loadState]
   const failedLoad = loadStates.find((state) => state.status === 'error')
@@ -113,38 +117,38 @@ function Workspace({ userId }: { userId: string }) {
       ) : (
         <>
           <div className="toolbar">
-            <button type="button" className="toolbar-button" onClick={() => setDialog({ mode: 'team' })}>
-              {members.length > 0 ? (
-                <>
-                  <AvatarStack members={members} max={5} size="small" />
-                  Team
-                </>
-              ) : (
-                <>
-                  <UserPlus size={15} aria-hidden />
-                  Add your team
-                </>
-              )}
-            </button>
-            <button type="button" className="toolbar-button" onClick={() => setDialog({ mode: 'labels' })}>
-              <Tag size={15} aria-hidden />
-              Labels
-            </button>
-            {labels.length > 0 && (
-              <LabelFilter
-                labels={labels}
-                activeIds={activeLabelIds}
-                visibleCount={visibleTasks.length}
-                totalCount={tasks.length}
-                onToggle={toggleFilterLabel}
-                onClear={() => setFilterLabelIds([])}
-              />
-            )}
+            <BoardFilters
+              filters={activeFilters}
+              members={members}
+              labels={labels}
+              visibleCount={visibleTasks.length}
+              totalCount={tasks.length}
+              onChange={setFilters}
+            />
+            <div className="toolbar__actions">
+              <button type="button" className="toolbar-button" onClick={() => setDialog({ mode: 'team' })}>
+                {members.length > 0 ? (
+                  <>
+                    <AvatarStack members={members} max={5} size="small" />
+                    Team
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={15} aria-hidden />
+                    Add your team
+                  </>
+                )}
+              </button>
+              <button type="button" className="toolbar-button" onClick={() => setDialog({ mode: 'labels' })}>
+                <Tag size={15} aria-hidden />
+                Labels
+              </button>
+            </div>
           </div>
           <Board
             tasks={visibleTasks}
             cardData={cardData}
-            isFiltered={activeLabelIds.length > 0}
+            isFiltered={hasActiveFilters(activeFilters)}
             onMoveTask={taskStore.moveTask}
             onOpenTask={(taskId) => setDialog({ mode: 'edit', taskId })}
             onAddTask={(status) => setDialog({ mode: 'create', status })}
@@ -155,12 +159,14 @@ function Workspace({ userId }: { userId: string }) {
       {dialog.mode === 'create' && (
         <TaskDialog
           initialStatus={dialog.status}
-          initialLabelIds={activeLabelIds}
+          initialValues={newTaskValues(activeFilters)}
           members={members}
           labels={labels}
           onClose={closeDialog}
           onSave={(draft) => {
             taskStore.createTask(draft)
+            // Someone who just made a task should be able to see it.
+            if (!matchesFilters(draft, activeFilters, cardData.membersById)) setFilters(NO_FILTERS)
             closeDialog()
           }}
         />

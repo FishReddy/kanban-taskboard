@@ -11,7 +11,8 @@ A Kanban board for planning and moving work, built with React, TypeScript and Su
 - Due date badges on cards for overdue, due today and due soon, by icon, wording and colour
 - Comments on each task, shown oldest first with timestamps, and a comment count on the card
 - An activity timeline on each task, recording moves, edits, assignments and label changes
-- Custom colour-coded labels, several per task, with one-click filtering of the board
+- Custom colour-coded labels, several per task
+- Search by title, plus filters for priority, assignee and label that combine
 - Instant updates that are undone with a message if a save fails
 - Loading, empty and error states, light and dark themes, and a responsive layout
 
@@ -49,7 +50,7 @@ Import the repository into Vercel, which detects Vite automatically, and add `VI
 
 ```
 supabase/schema.sql    Tables, constraints, trigger and RLS policies
-src/lib/               Types, Supabase client, and pure board, due date, team, label, comment and activity logic (tested)
+src/lib/               Types, Supabase client, and pure board, due date, filter, team, label, comment and activity logic (tested)
 src/hooks/             Auth, data loading, optimistic writes and the ordered write queue
 src/components/        Board (drag and drop), Column, TaskCard, dialogs, avatars, UI states
 src/styles.css         Design tokens and component styles

@@ -1,4 +1,4 @@
-import type { Label, Task } from './types'
+import type { Label } from './types'
 
 export const LABEL_NAME_MAX = 30
 
@@ -8,12 +8,6 @@ export function resolveLabels(ids: string[], labelsById: ReadonlyMap<string, Lab
     const label = labelsById.get(id)
     return label ? [label] : []
   })
-}
-
-/** Tasks with at least one of the labels. No labels means no filter. */
-export function filterTasksByLabels(tasks: Task[], labelIds: string[]): Task[] {
-  if (labelIds.length === 0) return tasks
-  return tasks.filter((task) => task.label_ids.some((id) => labelIds.includes(id)))
 }
 
 /** Matches the database's rule: names are unique, ignoring case and outer spaces. */
